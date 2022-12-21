@@ -35,12 +35,7 @@ object Day2 : Day() {
                 Hand.values().first { it.encodings.contains(s) }
 
             fun calculateScore(myHand: Hand, opponentHand: Hand): Int {
-//                println("myHand + $myHand;")
-//                println("oppHand + $opponentHand ")
                 val againstScore = myHand.against(opponentHand)
-//                println(againstScore)
-//                println(myHand.points)
-//                println(againstScore + myHand.points)
                 return againstScore + myHand.points
             }
 
