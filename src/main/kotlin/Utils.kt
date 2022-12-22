@@ -2,6 +2,8 @@ import java.io.File
 import java.math.BigInteger
 import java.security.MessageDigest
 import java.util.ArrayList
+import java.util.concurrent.TimeUnit
+import kotlin.system.measureNanoTime
 
 /**
  * Reads lines from the given input txt file.
@@ -33,4 +35,9 @@ inline fun <T> Iterable<T>.chunkedBy(predicate: (T) -> Boolean): List<List<T>> {
         }
     }
     return result
+}
+
+fun measure(block: () -> Unit) {
+    val nanoTime = measureNanoTime(block)
+    TimeUnit.NANOSECONDS.toMillis(nanoTime).println()
 }
