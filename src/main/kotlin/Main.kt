@@ -1,5 +1,5 @@
 fun main() {
-    val dayNumber = 4
+    val dayNumber = 5
     val test = false
     val data = readInput("day${dayNumber}_${if (test) "test" else "input"}")
 
