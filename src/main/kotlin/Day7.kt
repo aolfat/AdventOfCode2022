@@ -1,6 +1,7 @@
 import java.util.PriorityQueue
 
 object Day7: Day() {
+
     sealed class File {
 
         abstract val name: String
@@ -10,6 +11,10 @@ object Day7: Day() {
         sealed class Directory(val children: MutableList<File> = mutableListOf()) : File() {
 
             override val size by lazy { children.sumOf { it.size } }
+
+            fun getAllFolders(): List<Directory> {
+                return this.children.filterIsInstance<Directory>().flatMap { it.getAllFolders() } + this
+            }
 
             object RootNode : Directory() {
                 override val name: String
@@ -32,10 +37,6 @@ object Day7: Day() {
         val root = buildFilesystem(input)
         println(root)
         return gatherAllDirsAtMost100000(root, 100_000).sum()
-
-        /**
-         * build tree from input
-         */
     }
 
     private fun gatherAllDirsAtMost100000(root: File, atMostSize: Int): MutableList<Int> {
@@ -69,12 +70,7 @@ object Day7: Day() {
         val needToGetTo = 30_000_000
         val currentFreeSpace = totalDiskSpace - root.size
 
-        val allDirSizes = gatherAllDirSizes(root)
-        while (allDirSizes.isNotEmpty()) {
-            val smallestDir = allDirSizes.poll()
-            if (currentFreeSpace + smallestDir.size >= needToGetTo) return smallestDir.size
-        }
-        return null
+        return root.getAllFolders().asSequence().filter { currentFreeSpace + it.size >= needToGetTo }.minOf { it.size }
     }
 
     fun buildFilesystem(input: String): File.Directory {
