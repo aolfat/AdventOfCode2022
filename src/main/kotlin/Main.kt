@@ -1,6 +1,6 @@
 fun main() {
-    val dayNumber = 6
-    val test = false
+    val dayNumber = 7
+    val test = true
     val data = readInput("day${dayNumber}_${if (test) "test" else "input"}")
 
     val day = Class.forName("Day$dayNumber").kotlin.objectInstance as Day
