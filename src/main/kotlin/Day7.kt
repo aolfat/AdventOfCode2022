@@ -2,89 +2,71 @@ import java.util.PriorityQueue
 
 object Day7: Day() {
 
-    sealed class File {
+    sealed interface File {
+        val name: String
+        val parent: Directory?
+        val size: Int
+    }
 
-        abstract val name: String
-        abstract val parent: Directory
-        abstract val size: Int
+    data class Directory(
+        override val name: String,
+        override val parent: Directory? = null,
+        val children: MutableMap<String, File> = mutableMapOf()
+    ) : File {
 
-        sealed class Directory(val children: MutableList<File> = mutableListOf()) : File() {
-
-            override val size by lazy { children.sumOf { it.size } }
-
-            fun getAllFolders(): List<Directory> {
-                return this.children.filterIsInstance<Directory>().flatMap { it.getAllFolders() } + this
+        override val size: Int by lazy {
+                children.values.sumOf { it.size }.also { println("${this.name} hi") }
             }
+    }
 
-            object RootNode : Directory() {
-                override val name: String
-                    get() = "/"
-                override val parent: Directory
-                    get() = RootNode
+    data class RegularFile(override val name: String, override val parent: Directory, override val size: Int) : File
 
+    private fun traverseWithFunction(root: Directory, fn: (Directory) -> Unit) {
+        fun helper(file: File) {
+            if (file is Directory) {
+                file.children.values.forEach { helper(it) }
+                fn(file)
             }
-
-            data class Dir(
-                override val name: String,
-                override val parent: Directory,
-            ) : Directory()
         }
 
-        data class RegularFile(override val name: String, override val parent: Directory, override val size: Int) : File()
+        helper(root)
     }
 
     override fun part1(input: String): Any {
         val root = buildFilesystem(input)
-        println(root)
-        return gatherAllDirsAtMost100000(root, 100_000).sum()
-    }
-
-    private fun gatherAllDirsAtMost100000(root: File, atMostSize: Int): MutableList<Int> {
-        fun helper(file: File, result: MutableList<Int>) {
-//                is File.RegularFile -> if (file.size <= atMostSize) result[file.name] = file.size
-            if (file is File.Directory) {
-                file.children.forEach { helper(it, result) }
-                if (file.size <= atMostSize) result.add(file.size)
-            }
+        var sum = 0
+        traverseWithFunction(root) {
+            if (it.size <= 100_000) sum += it.size
         }
-
-
-        return mutableListOf<Int>().also { helper(root, it) }.also { it.println() }
+        return sum
     }
 
-    private fun gatherAllDirSizes(root: File): PriorityQueue<File> {
-        fun helper(file: File, result: PriorityQueue<File>) {
-            if (file is File.Directory) {
-                file.children.forEach { helper(it, result) }
-                result.add(file)
-            }
-        }
 
-
-        return PriorityQueue<File>(compareBy { it.size }).also { helper(root, it) }
-    }
-
-    override fun part2(input: String): Any? {
+    override fun part2(input: String): Any {
         val root = buildFilesystem(input)
         val totalDiskSpace = 70_000_000
         val needToGetTo = 30_000_000
         val currentFreeSpace = totalDiskSpace - root.size
 
-        return root.getAllFolders().asSequence().filter { currentFreeSpace + it.size >= needToGetTo }.minOf { it.size }
+        var min = root.size
+        traverseWithFunction(root) {
+            if ((it.size + currentFreeSpace) >= needToGetTo) min = min.coerceAtMost(it.size)
+        }
+        return min
     }
 
-    fun buildFilesystem(input: String): File.Directory {
-        val rootNode = File.Directory.RootNode
-        var currentNode: File.Directory = rootNode
+    fun buildFilesystem(input: String): Directory {
+        val rootNode = Directory("/", null)
+        var pwd: Directory = rootNode
 
         input.lines().forEach {
             if (it.isNotBlank()) {
                 if (it.startsWith("$ cd")) {
                     val dest = it.substringAfter("$ cd ").trim()
-                    currentNode = when (dest) {
+                    pwd = when (dest) {
                         "/" -> rootNode
-                        ".." -> currentNode.parent
-                        else -> currentNode.children.first { dir -> dir.name == dest } as File.Directory
+                        ".." -> pwd.parent!!
+                        else -> pwd.children[dest]!! as Directory
                     }
                 } else {
                     if (it.contains("$ ls")) {
@@ -92,20 +74,14 @@ object Day7: Day() {
                     }
                     if (it.startsWith("dir")) {
                         val name = it.substringAfter("dir ")
-                        currentNode.children.add(File.Directory.Dir(name, currentNode))
+                        pwd.children[name] = Directory(name, pwd)
                     } else {
                         val (size, name) = it.split(" ")
-                        currentNode.children.add(File.RegularFile(name, currentNode, size.toInt()))
+                        pwd.children[name] = RegularFile(name, pwd, size.toInt())
                     }
                 }
             }
         }
         return rootNode
-        /**
-         * need to keep track of the current node
-         * cd changes current node
-         * ls  means keep reading lines to add to children
-         *
-         **/
     }
 }
